@@ -11,7 +11,8 @@ MatchResult = namedtuple('MatchResult', ['is_match', 'matches'])
 
 
 class AdblockRules:
-    def __init__(self, rule_list=None):
+    def __init__(self, rule_list=None, skip_parsing_errors=False):
+        self.skip_parsing_errors = skip_parsing_errors
         self.rules = []
         if rule_list is not None:
             self.add_rules(rule_list)
@@ -34,7 +35,11 @@ class AdblockRules:
             if '##' in rule_str or '#@#' in rule_str:
                 continue
 
-            yield self._parse_rule(rule_str)
+            try:
+                yield self._parse_rule(rule_str)
+            except RuleParsingError as e:
+                if not self.skip_parsing_errors:
+                    raise
 
     def match(self, url, domain=None, origin=None):
         if domain is None:
@@ -77,6 +82,10 @@ class AdblockRules:
     def _parse_options(self, option_str):
         # FIXME: Implement this
         return None
+
+
+class RuleParsingError(Exception):
+    pass
 
 
 class Rule:
