@@ -123,18 +123,22 @@ class RegexpRule(Rule):
 
 
 class DomainRule(Rule):
-    def __init__(self, expression, options, domain):
+    def __init__(self, expression, options, domain, regexp_obj):
         super().__init__(expression, options)
         self._domain = domain
+        self._regexp_obj = regexp_obj
 
     def match(self, url, domain, origin=None):
-        # FIXME: Implement this
-        return False
+        return self._regexp_obj.search(domain) is not None
 
     @classmethod
     def from_expression(cls, expression, options):
-        # FIXME: Implement this
-        return cls(expression, options, 'example.com')
+        # Expression starts with || and often ends with ^ which
+        # however makes no sense, since these characters cannot
+        # be part of a doamin
+        domain = expression[2:].rstrip('^')
+        regexp_obj = _compile_wildcards(domain, fix_start=True, fix_end=True)
+        return cls(expression, options, domain, regexp_obj)
 
 
 class SubstringRule(Rule):
