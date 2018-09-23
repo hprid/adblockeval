@@ -82,11 +82,17 @@ class AhoCoraSickTest(unittest.TestCase):
         result_foo = index.get_matching_keywords('foo')
         self.assertSequenceEqual([], sorted(result_foo))
 
-    def test_empty_string(self):
+    def test_empty_string_keyword(self):
         keywords = ['foo', '', 'bar']
         index = AhoCorasickIndex.from_keywords(keywords)
         result = index.get_matching_keywords('quxbax')
         self.assertSequenceEqual([1], sorted(result))
+
+    def test_empty_string_haystack(self):
+        keywords = ['foo', 'bar', 'foobar']
+        index = AhoCorasickIndex.from_keywords(keywords)
+        result = index.get_matching_keywords('')
+        self.assertSequenceEqual([], sorted(result))
 
     def test_failfn_step2b(self):
         keywords = ['ad', 'bac']
