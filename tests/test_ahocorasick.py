@@ -87,3 +87,9 @@ class AhoCoraSickTest(unittest.TestCase):
         index = AhoCorasickIndex.from_keywords(keywords)
         result = index.get_matching_keywords('quxbax')
         self.assertSequenceEqual([1], sorted(result))
+
+    def test_failfn_step2b(self):
+        keywords = ['ad', 'bac']
+        index = AhoCorasickIndex.from_keywords(keywords)
+        result = index.get_matching_keywords('labac')
+        self.assertSequenceEqual([1], sorted(result))
