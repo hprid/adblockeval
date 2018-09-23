@@ -111,8 +111,14 @@ class RegexpRule(Rule):
 
     @classmethod
     def from_expression(cls, expression, options):
-        # FIXME: Implement this
-        regexp_obj = re.compile('^$')
+        # Expression starts with / and ends with /$
+        if not expression.startswith('/') and expression.endswith('/$'):
+            raise RuleParsingError('Not a regular expression rule: {}'.format(expression))
+        pattern = expression[1:-2]
+        try:
+            regexp_obj = re.compile(pattern)
+        except re.error:
+            raise RuleParsingError('Invalid regular expression {}'.format(pattern))
         return cls(expression, options, regexp_obj)
 
 
