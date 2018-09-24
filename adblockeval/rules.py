@@ -79,16 +79,14 @@ class AdblockRules:
 
         return rule
 
-    def _parse_options(self, option_str):
-        # FIXME: Implement this
-        return None
-
 
 class RuleParsingError(Exception):
     pass
 
 
 class Rule:
+    __slots__ = ('expression', 'options', 'is_exception')
+
     def __init__(self, expression, options):
         self.expression = expression
         self.options = options
@@ -102,6 +100,8 @@ class Rule:
 
 
 class RegexpRule(Rule):
+    __slots__ = ('_regexp_obj', )
+
     def __init__(self, expression, options, regexp_obj):
         super().__init__(expression, options)
         self._regexp_obj = regexp_obj
@@ -123,6 +123,8 @@ class RegexpRule(Rule):
 
 
 class DomainRule(Rule):
+    __slots__ = ('_domain', '_regexp_obj')
+
     def __init__(self, expression, options, domain, regexp_obj):
         super().__init__(expression, options)
         self._domain = domain
@@ -137,11 +139,13 @@ class DomainRule(Rule):
         # however makes no sense, since these characters cannot
         # be part of a doamin
         domain = expression[2:].rstrip('^')
-        regexp_obj = _compile_wildcards(domain, fix_start=True, fix_end=True)
+        regexp_obj = _compile_wildcards(domain, prefix=r'', suffix='$')
         return cls(expression, options, domain, regexp_obj)
 
 
 class SubstringRule(Rule):
+    __slots__ = ('_regexp_obj', )
+
     def __init__(self, expression, options, regexp_obj):
         super().__init__(expression, options)
         self._regexp_obj = regexp_obj
