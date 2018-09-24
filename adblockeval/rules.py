@@ -282,7 +282,7 @@ class RuleOptions:
                    options_mask=options_mask)
 
 
-def _compile_wildcards(expression, prefix='', suffix=''):
+def _compile_wildcards(expression, prefix='', suffix='', match_case=False):
     """Translate the expression into a regular expression.
     A star matches anything, while ^ is a placeholder for a single separator
     character. According to the docs, "Separator character is anything but a
@@ -302,4 +302,5 @@ def _compile_wildcards(expression, prefix='', suffix=''):
         regex_parts.append(re.escape(expression[start:]))
     if suffix:
         regex_parts.append(suffix)
-    return re.compile(''.join(regex_parts))
+    return re.compile(''.join(regex_parts),
+                      re.IGNORECASE if not match_case else 0)
