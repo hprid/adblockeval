@@ -48,8 +48,9 @@ class AdblockRules:
 
     def match(self, url, domain=None, origin=None):
         matching_rules = []
+        parsed_url = urlparse(url)
         for rule_no, rule in self.rules:
-            if rule.match(url, domain, origin):
+            if rule.match(url, parsed_url.netloc, domain, origin):
                 if rule.is_exception:
                     return MatchResult(False, [(rule_no, rule)])
                 matching_rules.append((rule_no, rule))
@@ -95,7 +96,7 @@ class Rule:
         self.options = options
         self.is_exception = False
 
-    def match(self, url, domain, origin=None):
+    def match(self, url, netloc, domain, origin=None):
         raise NotImplemented
 
     def __str__(self):
@@ -109,8 +110,11 @@ class RegexpRule(Rule):
         super().__init__(expression, options)
         self._regexp_obj = regexp_obj
 
-    def match(self, url, domain, origin=None):
-        return self._regexp_obj.search(url) is not None
+    def match(self, url, netloc, domain, origin=None):
+        if self.options and not self.options.can_apply_rule(domain, origin):
+            return False
+        return (self.options.can_apply_rule(domain, origin) and
+                self._regexp_obj.search(url) is not None)
 
     @classmethod
     def from_expression(cls, expression, options):
@@ -133,8 +137,13 @@ class DomainRule(Rule):
         self._domain = domain
         self._regexp_obj = regexp_obj
 
-    def match(self, url, domain, origin=None):
-        return self._regexp_obj.search(domain) is not None
+    def match(self, url, netloc, domain, origin=None):
+        if self.options and not self.options.can_apply_rule(netloc, origin):
+            return False
+        match_obj = self._regexp_obj.search(netloc)
+        if match_obj is None:
+            return False
+        return match_obj.start() == 0 or netloc[match_obj.start() - 1] == '.'
 
     @classmethod
     def from_expression(cls, expression, options):
@@ -153,7 +162,9 @@ class SubstringRule(Rule):
         super().__init__(expression, options)
         self._regexp_obj = regexp_obj
 
-    def match(self, url, domain, origin=None):
+    def match(self, url, netloc, domain, origin=None):
+        if self.options and not self.options.can_apply_rule(domain, origin):
+            return False
         return self._regexp_obj.search(url) is not None
 
     @classmethod
