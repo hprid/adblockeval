@@ -14,6 +14,7 @@ class AdblockRules:
     def __init__(self, rule_list=None, skip_parsing_errors=False):
         self.skip_parsing_errors = skip_parsing_errors
         self.rules = []
+        self._current_line_no = 1
         if rule_list is not None:
             self.add_rules(rule_list)
 
@@ -21,7 +22,9 @@ class AdblockRules:
         self.rules += self._parse_rules(rule_list)
 
     def _parse_rules(self, rule_list):
-        for rule_str in rule_list:
+        # In case rule_list is empty, rule_no must be defined.
+        rule_no = self._current_line_no
+        for rule_no, rule_str in enumerate(rule_list, start=self._current_line_no):
             # Comments
             if rule_str.startswith('!'):
                 continue
@@ -36,20 +39,20 @@ class AdblockRules:
                 continue
 
             try:
-                yield self._parse_rule(rule_str)
+                rule = self._parse_rule(rule_str)
+                yield rule_no, rule
             except RuleParsingError as e:
                 if not self.skip_parsing_errors:
                     raise
+        self._current_line_no = rule_no
 
     def match(self, url, domain=None, origin=None):
-        if domain is None:
-            domain = urlparse(url).netloc
         matching_rules = []
-        for rule in self.rules:
+        for rule_no, rule in self.rules:
             if rule.match(url, domain, origin):
                 if rule.is_exception:
-                    return MatchResult(False, [rule])
-                matching_rules.append(rule)
+                    return MatchResult(False, [(rule_no, rule)])
+                matching_rules.append((rule_no, rule))
         return MatchResult(bool(matching_rules), matching_rules)
 
     def _parse_rule(self, rule_str):
