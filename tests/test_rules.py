@@ -1,6 +1,9 @@
 import unittest
+from pathlib import Path
 
 from adblockeval.rules import AdblockRules, SubstringRule
+
+EASYLIST_PATH = Path(__file__).parent / '../examples/easylist.txt'
 
 
 class ParsingTest(unittest.TestCase):
@@ -58,3 +61,18 @@ class ParsingTest(unittest.TestCase):
     def test_substring_rule(self):
         expr = SubstringRule.from_expression('foo/*/bar^', None)
         self.assertTrue(expr.match('foo/qux/bar/', 'example.com', None))
+
+    @unittest.skipIf(not EASYLIST_PATH.is_file(),
+                     reason='Requires easylist.txt in examples')
+    def test_load_easylist(self):
+        with EASYLIST_PATH.open() as f:
+            rules = AdblockRules(f.readlines())
+        urls = [
+            'https://imagesrv.adition.com/banners/268/00/86/70/52/images/konfetti.png',
+            'https://match.adsrvr.org/track/cmf/generic?ttd_pid=theadex&ttd_puid=1001718401132270252&ttd_tpi=1',
+            'https://s.hs-data.com/comon/prj/isdc/v3/default/static/js/lib/hammer.min.js',
+            'https://ih.adscale.de/map?ssl=1&format=video',
+        ]
+        is_matches = [rules.match(url, 'www.example.com').is_match for url in urls]
+        is_matches_expected = [True, True, False, True]
+        self.assertEqual(is_matches, is_matches_expected)
