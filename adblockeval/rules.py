@@ -13,13 +13,9 @@ MatchResult = namedtuple('MatchResult', ['is_match', 'matches'])
 class AdblockRules:
     def __init__(self, rule_list=None, skip_parsing_errors=False):
         self.skip_parsing_errors = skip_parsing_errors
-        self.rules = []
         self._current_line_no = 1
         if rule_list is not None:
-            self.add_rules(rule_list)
-
-    def add_rules(self, rule_list):
-        self.rules += self._parse_rules(rule_list)
+            self.rules = list(self._parse_rules(rule_list))
 
     def _parse_rules(self, rule_list):
         # In case rule_list is empty, rule_no must be defined.

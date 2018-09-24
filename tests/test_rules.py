@@ -30,9 +30,7 @@ class ParsingTest(unittest.TestCase):
 
     def test_exception_rule(self):
         url = 'static/some/exception.jpg'
-        rules = AdblockRules(['/some/*.jpg'])
-        self.assertTrue(rules.match(url)[0])
-        rules.add_rules(['@@/some/exception.jpg'])
+        rules = AdblockRules(['/some/*.jpg', '@@/some/exception.jpg'])
         self.assertFalse(rules.match(url).is_match)
 
     def test_regexp_rule(self):
