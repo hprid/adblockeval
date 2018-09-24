@@ -33,13 +33,15 @@ class AhoCorasickIndex:
                         yield keyword
 
     @classmethod
-    def from_keywords(cls, keywords):
-        return cls(*_build_index(keywords))
+    def from_keywords(cls, keywords, outputs=None):
+        return cls(*_build_index(keywords, outputs))
 
 
-def _build_index(keywords):
+def _build_index(keywords, outputs):
     if not keywords:
         return {}, {}, {}
+    if outputs is None:
+        outputs = range(len(keywords))
     # The goto function is basically a trie where there is some
     # special handling of the first state for non-"walkable"
     # symbols (see comment below)
@@ -53,7 +55,7 @@ def _build_index(keywords):
     state_symbols = defaultdict(list)
     depths_states = defaultdict(list)
     depths_states[0] = [0]
-    for keyword_index, keyword in enumerate(keywords):
+    for keyword_output, keyword in zip(outputs, keywords):
         state = 0
         for depth, symbol in enumerate(keyword, start=1):
             try:
@@ -66,7 +68,7 @@ def _build_index(keywords):
                 state_symbols[state].append(symbol)
                 goto_fn[state, symbol] = state_counter
                 state = state_counter
-        output_fn[state].add(keyword_index)
+        output_fn[state].add(keyword_output)
     # Normally state == 0 and symbol not in {w_0 | w in keywords}
     # loops back to 0 in the goto function. However, we do not
     # model this explicitly but implicitly when accessing the
