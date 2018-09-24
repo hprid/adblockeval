@@ -69,7 +69,7 @@ class AdblockRules:
             expression = expression[2:]
 
         # Regexp rules
-        if '/$/' in expression:
+        if expression.startswith('/') and expression.endswith('/'):
             rule = RegexpRule.from_expression(expression, options)
         # Domain rules. According to uBlock manual, any rule that looks
         # like a hostname does not match as substring but as domain.
@@ -126,9 +126,9 @@ class RegexpRule(Rule):
     @classmethod
     def from_expression(cls, expression, options):
         # Expression starts with / and ends with /$
-        if not expression.startswith('/') and expression.endswith('/$'):
+        if not expression.startswith('/') and expression.endswith('/'):
             raise RuleParsingError('Not a regular expression rule: {}'.format(expression))
-        pattern = expression[1:-2]
+        pattern = expression[1:-1]
         try:
             regexp_obj = re.compile(pattern)
         except re.error:
@@ -242,6 +242,12 @@ class RuleOptions:
         if self.include_domains and domain not in self.include_domains:
             return False
         return True
+
+    def has_set(self, keyword):
+        try:
+            return bool(self.options_mask & self.AVAILABLE_OPTIONS[keyword])
+        except KeyError:
+            raise ValueError('Unsupported option keyword: {}'.format(keyword))
 
     def __str__(self):
         option_str_list = []
