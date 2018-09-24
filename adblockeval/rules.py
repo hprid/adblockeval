@@ -129,8 +129,10 @@ class RegexpRule(Rule):
         if not expression.startswith('/') and expression.endswith('/'):
             raise RuleParsingError('Not a regular expression rule: {}'.format(expression))
         pattern = expression[1:-1]
+        match_case = options.has_set('match-case') if options else False
         try:
-            regexp_obj = re.compile(pattern)
+            regexp_obj = re.compile(pattern,
+                                    re.IGNORECASE if not match_case else 0)
         except re.error:
             raise RuleParsingError('Invalid regular expression {}'.format(pattern))
         return cls(expression, options, regexp_obj)
@@ -194,9 +196,11 @@ class SubstringRule(Rule):
         # have any influence here.
         expression = expression.strip('*')
 
+        match_case = options.has_set('match-case') if options else False
         regexp_obj = _compile_wildcards(expression,
                                         '^' if fix_start else None,
-                                        '$' if fix_end else None)
+                                        '$' if fix_end else None,
+                                        match_case)
 
         return cls(origin_expression, options, regexp_obj)
 

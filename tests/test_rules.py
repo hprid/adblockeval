@@ -76,3 +76,19 @@ class ParsingTest(unittest.TestCase):
         is_matches = [rules.match(url, 'www.example.com').is_match for url in urls]
         is_matches_expected = [True, True, False, True]
         self.assertEqual(is_matches, is_matches_expected)
+
+    def test_match_case(self):
+        rule_list = ['/FooBar$match-case']
+        rules = AdblockRules(rule_list)
+        match_not = rules.match('http://example.com/foobarqux', 'example.org')
+        match = rules.match('http://example.com/FooBarqux', 'example.org')
+        self.assertFalse(match_not.is_match)
+        self.assertTrue(match.is_match)
+
+    def test_match_case_regexp(self):
+        rule_list = ['/com.*FooBar/$match-case']
+        rules = AdblockRules(rule_list)
+        match_not = rules.match('http://example.com/foobarqux', 'example.org')
+        match = rules.match('http://example.com/FooBarqux', 'example.org')
+        self.assertFalse(match_not.is_match)
+        self.assertTrue(match.is_match)
