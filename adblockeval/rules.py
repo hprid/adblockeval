@@ -23,8 +23,8 @@ class AdblockRules:
 
     def _parse_rules(self, rule_list):
         # In case rule_list is empty, rule_no must be defined.
-        rule_no = self._current_line_no
-        for rule_no, rule_str in enumerate(rule_list, start=self._current_line_no):
+        line_no = self._current_line_no
+        for line_no, rule_str in enumerate(rule_list, start=self._current_line_no):
             # Comments
             if rule_str.startswith('!'):
                 continue
@@ -40,20 +40,21 @@ class AdblockRules:
 
             try:
                 rule = self._parse_rule(rule_str)
-                yield rule_no, rule
+                rule.line_no = line_no
+                yield rule
             except RuleParsingError as e:
                 if not self.skip_parsing_errors:
                     raise
-        self._current_line_no = rule_no
+        self._current_line_no = line_no
 
     def match(self, url, domain=None, origin=None):
         matching_rules = []
         parsed_url = urlparse(url)
-        for rule_no, rule in self.rules:
+        for rule in self.rules:
             if rule.match(url, parsed_url.netloc, domain, origin):
                 if rule.is_exception:
-                    return MatchResult(False, [(rule_no, rule)])
-                matching_rules.append((rule_no, rule))
+                    return MatchResult(False, [rule])
+                matching_rules.append(rule)
         return MatchResult(bool(matching_rules), matching_rules)
 
     def _parse_rule(self, rule_str):
@@ -89,11 +90,12 @@ class RuleParsingError(Exception):
 
 
 class Rule:
-    __slots__ = ('expression', 'options', 'is_exception')
+    __slots__ = ('line_no', 'expression', 'options', 'is_exception')
 
     def __init__(self, expression, options):
         self.expression = expression
         self.options = options
+        self.line_no = -1
         self.is_exception = False
 
     def match(self, url, netloc, domain, origin=None):
