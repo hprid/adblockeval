@@ -60,7 +60,7 @@ class AdblockRules:
 
         parts = rule_str.rsplit('$', 1)
         expression = parts[0]
-        options = self._parse_options(parts[1]) if len(parts) == 2 else None
+        options = RuleOptions.from_string(parts[1]) if len(parts) == 2 else None
 
         # Exception rules
         if expression.startswith('@@'):
@@ -179,6 +179,87 @@ class SubstringRule(Rule):
         regexp_obj = _compile_wildcards(expression, fix_start, fix_end)
 
         return cls(origin_expression, options, regexp_obj)
+
+
+class RuleOptions:
+    __slots__ = ('include_domains', 'exclude_domains', 'options_mask',
+                 'options_mask_negative')
+
+    AVAILABLE_OPTIONS = {
+        'script': 1 << 1,
+        'image': 1 << 2,
+        'stylesheet': 1 << 3,
+        'object': 1 << 4,
+        'xmlhttprequest': 1 << 5,
+        'object-subrequest': 1 << 6,
+        'subdocument': 1 << 7,
+        'ping': 1 << 8,
+        'websocket': 1 << 9,
+        'webrtc': 1 << 10,
+        'document': 1 << 11,
+        'elemhide': 1 << 12,
+        'generichide': 1 << 13,
+        'genericblock': 1 << 14,
+        'popup': 1 << 15,
+        'other': 1 << 16,
+        'third-party': 1 << 17,
+        'match-case': 1 << 18,
+        'collapse': 1 << 19,
+        'donottrack': 1 << 20
+
+    }
+
+    def __init__(self, include_domains, exclude_domains, options_mask=0,
+                 options_mask_negative=0):
+        self.include_domains = include_domains
+        self.exclude_domains = exclude_domains
+        self.options_mask = options_mask
+        self.options_mask_negative = options_mask_negative
+
+    def can_apply_rule(self, domain, origin):
+        if self.exclude_domains and domain in self.exclude_domains:
+            return False
+        if self.include_domains and domain not in self.include_domains:
+            return False
+        return True
+
+    def __str__(self):
+        option_str_list = []
+        if self.exclude_domains or self.include_domains:
+            domain_list = []
+            if self.include_domains:
+                domain_list += self.include_domains
+            if self.exclude_domains:
+                domain_list += ('~' + domain for domain in self.exclude_domains)
+            option_str_list.append('domain=' + '|'.join(domain_list))
+        for option, bitmask in self.AVAILABLE_OPTIONS.items():
+            if self.options_mask & bitmask:
+                option_str_list.append(option)
+            if self.options_mask_negative & bitmask:
+                option_str_list.append('~' + option)
+        return ','.join(option_str_list)
+
+    @classmethod
+    def from_string(cls, option_str):
+        option_parts = option_str.split(',')
+        include_domains = []
+        exclude_domains = []
+        options_mask = 0
+        for option_part in option_parts:
+            if option_part in cls.AVAILABLE_OPTIONS:
+                options_mask |= cls.AVAILABLE_OPTIONS[option_part]
+            elif option_part.startswith('domain='):
+                domains = option_part[len('domain='):].split('|')
+                for domain in domains:
+                    # domain=* will have the same effect as
+                    # not having domain option set
+                    if not domain or domain == '*':
+                        continue
+                    domain_list = include_domains if domain[0] != '~' else exclude_domains
+                    domain_list.append(domain)
+        return cls(include_domains=include_domains if include_domains else None,
+                   exclude_domains=exclude_domains if exclude_domains else None,
+                   options_mask=options_mask)
 
 
 def _compile_wildcards(expression, fix_start, fix_end):
