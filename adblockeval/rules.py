@@ -176,7 +176,9 @@ class SubstringRule(Rule):
         # have any influence here.
         expression = expression.strip('*')
 
-        regexp_obj = _compile_wildcards(expression, fix_start, fix_end)
+        regexp_obj = _compile_wildcards(expression,
+                                        '^' if fix_start else None,
+                                        '$' if fix_end else None)
 
         return cls(origin_expression, options, regexp_obj)
 
@@ -262,7 +264,7 @@ class RuleOptions:
                    options_mask=options_mask)
 
 
-def _compile_wildcards(expression, fix_start, fix_end):
+def _compile_wildcards(expression, prefix='', suffix=''):
     """Translate the expression into a regular expression.
     A star matches anything, while ^ is a placeholder for a single separator
     character. According to the docs, "Separator character is anything but a
@@ -270,7 +272,9 @@ def _compile_wildcards(expression, fix_start, fix_end):
     """
     wildcards = [(match.start(), match.group(0))
                  for match in re.finditer('[*^]', expression)]
-    regex_parts = ['^'] if fix_start else []
+    regex_parts = []
+    if prefix:
+        regex_parts.append(prefix)
     start = 0
     for pos, wildard_type in wildcards:
         regex_parts.append(re.escape(expression[start:pos]))
@@ -278,6 +282,6 @@ def _compile_wildcards(expression, fix_start, fix_end):
         start = pos + 1
     if start < len(expression):
         regex_parts.append(re.escape(expression[start:]))
-    if fix_end:
-        regex_parts.append('$')
+    if suffix:
+        regex_parts.append(suffix)
     return re.compile(''.join(regex_parts))
