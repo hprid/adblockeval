@@ -68,13 +68,13 @@ class AdblockRules:
             is_exception = True
             expression = expression[2:]
 
-        # Regexp rules
-        if expression.startswith('/') and expression.endswith('/'):
-            rule = RegexpRule.from_expression(expression, options)
         # Domain rules. According to uBlock manual, any rule that looks
         # like a hostname does not match as substring but as domain.
-        elif expression.startswith('||') or _HOSTNAME_REGEX.match(expression):
+        if expression.startswith('||') or _HOSTNAME_REGEX.match(expression):
             rule = DomainRule.from_expression(expression, options)
+        # Regexp rules
+        elif expression.startswith('/') and expression.endswith('/'):
+            rule = RegexpRule.from_expression(expression, options)
         # Substring rules
         else:
             rule = SubstringRule.from_expression(expression, options)
