@@ -100,7 +100,14 @@ class Rule:
         raise NotImplemented
 
     def __str__(self):
-        return '@@' + self.expression if self.is_exception else self.expression
+        if self.options:
+            expression_str = '{}${}'.format(self.expression, self.options)
+        else:
+            expression_str = self.expression
+        return '@@' + expression_str if self.is_exception else expression_str
+
+    def __repr__(self):
+        return '{}({!r})'.format(self.__class__.__name__, str(self))
 
 
 class RegexpRule(Rule):
