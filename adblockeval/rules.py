@@ -209,6 +209,8 @@ class DomainRule(Rule):
     def match(self, url, netloc, domain, origin=None):
         if self.options and not self.options.can_apply_rule(netloc, origin):
             return False
+        if isinstance(self._regexp_obj, tuple):
+            self._regexp_obj = re.compile(*self._regexp_obj)
         match_obj = self._regexp_obj.search(netloc)
         if match_obj is None:
             return False
@@ -223,7 +225,7 @@ class DomainRule(Rule):
         # however makes no sense, since these characters cannot
         # be part of a doamin
         domain = expression[2:].rstrip('^')
-        regexp_obj = _compile_wildcards(domain, prefix=r'', suffix='$')
+        regexp_obj = _compile_wildcards(domain, prefix=r'', suffix='$', lazy=True)
         return cls(expression, options, domain, regexp_obj)
 
 
@@ -237,6 +239,8 @@ class SubstringRule(Rule):
     def match(self, url, netloc, domain, origin=None):
         if self.options and not self.options.can_apply_rule(domain, origin):
             return False
+        if isinstance(self._regexp_obj, tuple):
+            self._regexp_obj = re.compile(*self._regexp_obj)
         return self._regexp_obj.search(url) is not None
 
     def get_keywords(self):
@@ -266,7 +270,8 @@ class SubstringRule(Rule):
         regexp_obj = _compile_wildcards(expression,
                                         '^' if fix_start else None,
                                         '$' if fix_end else None,
-                                        match_case)
+                                        match_case,
+                                        lazy=True)
 
         return cls(origin_expression, options, regexp_obj)
 
@@ -358,7 +363,7 @@ class RuleOptions:
                    options_mask=options_mask)
 
 
-def _compile_wildcards(expression, prefix='', suffix='', match_case=False):
+def _compile_wildcards(expression, prefix='', suffix='', match_case=False, lazy=False):
     """Translate the expression into a regular expression.
     A star matches anything, while ^ is a placeholder for a single separator
     character. According to the docs, "Separator character is anything but a
@@ -378,8 +383,10 @@ def _compile_wildcards(expression, prefix='', suffix='', match_case=False):
         regex_parts.append(re.escape(expression[start:]))
     if suffix:
         regex_parts.append(suffix)
-    return re.compile(''.join(regex_parts),
-                      re.IGNORECASE if not match_case else 0)
+    pattern = ''.join(regex_parts)
+    options = re.IGNORECASE if not match_case else 0
+    return (pattern, options) if lazy else re.compile(pattern, options)
+
 
 def _get_usable_keywords(wildcard_str):
     keyword = max(re.split('[*^]', wildcard_str), key=len)
