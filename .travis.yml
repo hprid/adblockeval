@@ -3,6 +3,8 @@ python:
   - "3.5"
   - "3.6"
 install:
-  - pip install pytest pytest-cov
+  - pip install pytest pytest-cov codecov
   - pip install -e .
-script: pytest --cov=./adblockeval
+script:
+  - pytest --cov=./adblockeval
+  - codecov
