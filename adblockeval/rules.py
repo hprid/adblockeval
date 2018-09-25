@@ -55,7 +55,7 @@ class AdblockRules:
         domain_opt_keywords = []
         domain_opt_outputs = []
         for rule_index, rule in enumerate(self.rules):
-            if isinstance(rule, SubstringRule):
+            if isinstance(rule, (SubstringRule, RegexpRule)):
                 keyword_list = url_keywords
                 output_list = url_outputs
             elif isinstance(rule, DomainRule):
@@ -64,12 +64,13 @@ class AdblockRules:
             else:
                 always_check_rules.append(rule_index)
                 continue
-            keyword = rule.get_keyword()
-            if not keyword:
+            keywords = rule.get_keywords()
+            if not keywords:
                 always_check_rules.append(rule_index)
                 continue
-            keyword_list.append(keyword)
-            output_list.append(rule_index)
+            for keyword in keywords:
+                keyword_list.append(keyword)
+                output_list.append(rule_index)
             if rule.options and rule.options.include_domains:
                 for domain in rule.options.include_domains:
                     domain_opt_keywords.append(domain)
@@ -177,8 +178,10 @@ class RegexpRule(Rule):
     def match(self, url, netloc, domain, origin=None):
         if self.options and not self.options.can_apply_rule(domain, origin):
             return False
-        return (self.options.can_apply_rule(domain, origin) and
-                self._regexp_obj.search(url) is not None)
+        return self._regexp_obj.search(url) is not None
+
+    def get_keywords(self):
+        return _get_regexp_keywords(self._regexp_obj.pattern)
 
     @classmethod
     def from_expression(cls, expression, options):
@@ -211,8 +214,8 @@ class DomainRule(Rule):
             return False
         return match_obj.start() == 0 or netloc[match_obj.start() - 1] == '.'
 
-    def get_keyword(self):
-        return _get_longest_keyword(self._domain.strip('|'))
+    def get_keywords(self):
+        return _get_usable_keywords(self._domain.strip('|'))
 
     @classmethod
     def from_expression(cls, expression, options):
@@ -236,8 +239,8 @@ class SubstringRule(Rule):
             return False
         return self._regexp_obj.search(url) is not None
 
-    def get_keyword(self):
-        return _get_longest_keyword(self.expression.strip('|'))
+    def get_keywords(self):
+        return _get_usable_keywords(self.expression.strip('|'))
 
     @classmethod
     def from_expression(cls, expression, options):
@@ -378,6 +381,82 @@ def _compile_wildcards(expression, prefix='', suffix='', match_case=False):
     return re.compile(''.join(regex_parts),
                       re.IGNORECASE if not match_case else 0)
 
+def _get_usable_keywords(wildcard_str):
+    keyword = max(re.split('[*^]', wildcard_str), key=len)
+    return [keyword] if keyword else None
 
-def _get_longest_keyword(wildcard_str):
-    return max(re.split('[*^]', wildcard_str), key=len)
+
+def _get_regexp_keywords(pattern):
+    """Extracts keywords from a regular expression that must appear in an URL.
+
+    The algorithm does a very bad parsing of regular expression and is very
+    conservative about the extracted keywords. We favor correctness over
+    a probably more complete result. Namely, if the rule matches, at least
+    one of the extracted keywords is in the URL. To ensure correctness, it
+    only take constant keywords in parsing depth == 1 and very simple
+    constant pipe options like (foo|bar|qux) in a group in depth == 1.
+    However, this should extract some keywords for the regular expressions
+    in the easylist.
+    """
+    token_specification = [
+        ('ESCAPE',           r'\\.'),
+        ('CHAR_GROUP_OPEN',  r'\['),
+        ('CHAR_GROUP_CLOSE', r'\]'),
+        ('PIPE_GROUP',       r'\([\w\d\-_|]+\)'),
+        ('GROUP_CLOSE',      r'\('),
+        ('GROUP_END',        r'\)'),
+        ('LENGTH_OPEN',      r'\{'),
+        ('LENGTH_CLOSE',     r'\}'),
+        ('OPTIONAL',         r'\?'),
+        ('KEYWORD',          r'\w+'),
+        ('OTHER',            r'.')
+    ]
+    tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
+    keywords = []
+    stack = ['start']
+    state_was_keyword = False
+    num_pipe_keywords = 0
+    for mo in re.finditer(tok_regex, pattern):
+        state = stack[-1]
+        kind = mo.lastgroup
+        value = mo.group(kind)
+
+        if kind == 'PIPE_GROUP' and len(stack) == 1:
+            pipe_keywords = value.split('|')
+            pipe_keywords[0] = pipe_keywords[0][1:] # remove (
+            pipe_keywords[-1] = pipe_keywords[-1][:-1] # remove )
+            num_pipe_keywords = len(pipe_keywords)
+            keywords += pipe_keywords
+            continue
+        elif kind == 'GROUP_OPEN':
+            stack.append('group')
+        elif kind == 'GROUP_CLOSE' and state == 'group':
+            stack.pop()
+        elif kind == 'CHAR_GROUP_OPEN':
+            stack.append('char_group')
+        elif kind == 'CHAR_GROUP_CLOSE' and state == 'char_group':
+            stack.pop()
+        elif kind == 'LENGTH_OPEN':
+            stack.append('length')
+        elif kind == 'LENGTH_CLOSE' and state == 'length':
+            stack.pop()
+        elif kind == 'KEYWORD' and len(stack) == 1:
+            keywords.append(value)
+            state_was_keyword = True
+            continue
+        elif kind == 'OPTIONAL':
+            if state_was_keyword:
+                # Strip of last character, because something
+                # like foob? only garantuees foo to be present.
+                keyword = keywords.pop()[:-1]
+                if keyword:
+                    keywords.append(keyword)
+                # If a whole construct like (foo|bar|qux)? is
+                # optional, we have to remove all keywords again.
+            elif num_pipe_keywords:
+                for i in range(num_pipe_keywords):
+                    keywords.pop()
+        state_was_keyword = False
+        num_pipe_keywords = 0
+
+    return set(keywords) if keywords else None
