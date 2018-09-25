@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
     name='adblockeval',
     version='0.1-dev',
-    packages=[''],
+    packages=['adblockeval'],
     url='https://github.com/hprid/adblockeval',
     license='MIT',
     author='Henning Pridöhl',
