@@ -81,7 +81,7 @@ class AdblockRules:
                                                                 domain_opt_outputs)
         self._always_check_rules = always_check_rules
 
-    def match(self, url, domain=None, origin=None):
+    def match_slow(self, url, domain=None, origin=None):
         matching_rules = []
         parsed_url = urlparse(url)
         for rule in self.rules:
@@ -91,7 +91,7 @@ class AdblockRules:
                 matching_rules.append(rule)
         return MatchResult(bool(matching_rules), matching_rules)
 
-    def match_fast(self, url, domain=None, origin=None):
+    def match(self, url, domain=None, origin=None):
         matching_rules = []
         parsed_url = urlparse(url)
         netloc = parsed_url.netloc
