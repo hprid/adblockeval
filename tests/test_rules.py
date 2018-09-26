@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from adblockeval.rules import AdblockRules, SubstringRule
+from adblockeval.rules import AdblockRules, SubstringRule, RuleParsingError
 
 EASYLIST_PATH = Path(__file__).parent / '../examples/easylist.txt'
 
@@ -90,3 +90,8 @@ class ParsingTest(unittest.TestCase):
         match = rules.match('http://example.com/FooBarqux', 'example.org')
         self.assertFalse(match_not.is_match)
         self.assertTrue(match.is_match)
+
+    def test_invalid_regexp(self):
+        with self.assertRaises(RuleParsingError):
+            AdblockRules(['/[/'])
+        AdblockRules(['/[/'], skip_parsing_errors=True)
