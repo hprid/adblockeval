@@ -121,3 +121,9 @@ class ParsingTest(unittest.TestCase):
         keywords = _get_regexp_keywords('foo?(bar|qux)(daz|doo)?\.([a-z]{3}|[0-9]{2}')
         self.assertEqual(keywords, {'fo', 'bar', 'qux'})
 
+    def test_domain_option_parsing(self):
+        rules = AdblockRules(['ads$domain=example.com|~example.org|example.net'])
+        options = rules.rules[0].options
+        self.assertEqual(['example.com', 'example.net'], options.include_domains)
+        self.assertEqual(['example.org'], options.exclude_domains)
+
