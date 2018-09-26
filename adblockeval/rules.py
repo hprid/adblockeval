@@ -344,18 +344,18 @@ class RuleOptions:
 
     def __str__(self):
         option_str_list = []
-        if self.exclude_domains or self.include_domains:
-            domain_list = []
-            if self.include_domains:
-                domain_list += self.include_domains
-            if self.exclude_domains:
-                domain_list += ('~' + domain for domain in self.exclude_domains)
-            option_str_list.append('domain=' + '|'.join(domain_list))
-        for option, bitmask in self.AVAILABLE_OPTIONS.items():
+        for option, bitmask in sorted(self.AVAILABLE_OPTIONS.items()):
             if self.options_mask & bitmask:
                 option_str_list.append(option)
             if self.options_mask_negative & bitmask:
                 option_str_list.append('~' + option)
+        if self.exclude_domains or self.include_domains:
+            domain_list = []
+            if self.include_domains:
+                domain_list += sorted(self.include_domains)
+            if self.exclude_domains:
+                domain_list += sorted('~' + domain for domain in self.exclude_domains)
+            option_str_list.append('domain=' + '|'.join(domain_list))
         return ','.join(option_str_list)
 
     @classmethod
