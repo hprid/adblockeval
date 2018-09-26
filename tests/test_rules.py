@@ -158,3 +158,12 @@ class ParsingTest(unittest.TestCase):
         rules = AdblockRules(rule_list)
         for rule in rules.rules:
             self.assertEqual(rule_list[rule.line_no - 1], str(rule))
+
+    def test_rule_options(self):
+        rules = AdblockRules([
+            'foo$script,~stylesheet,domain=*'
+        ])
+        rule = rules.rules[0]
+        self.assertTrue(rule.options.has_included('script'))
+        self.assertTrue(rule.options.has_excluded('stylesheet'))
+        self.assertIsNone(rule.options.include_domains)
