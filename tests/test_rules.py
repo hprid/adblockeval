@@ -106,7 +106,9 @@ class ParsingTest(unittest.TestCase):
         rules = AdblockRules([
             '/banners/',
             '/ttd_puid=\d+/',
-            '||adscale.de^'
+            '||adscale.de^',
+            'hammer*',
+            '@@https://$domain=hs-data.com'
         ])
         for url in urls:
             self.assertEqual(rules.match(url, 'www.example.com'),
