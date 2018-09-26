@@ -372,9 +372,14 @@ class RuleOptions:
         include_domains = []
         exclude_domains = []
         options_mask = 0
+        options_mask_negative = 0
         for option_part in option_parts:
+            if not option_part:
+                continue
             if option_part in cls.AVAILABLE_OPTIONS:
                 options_mask |= cls.AVAILABLE_OPTIONS[option_part]
+            elif option_part[0] == '~' and option_part[1:] in cls.AVAILABLE_OPTIONS:
+                options_mask_negative |= cls.AVAILABLE_OPTIONS[option_part[1:]]
             elif option_part.startswith('domain='):
                 domains = option_part[len('domain='):].split('|')
                 for domain in domains:
@@ -386,7 +391,8 @@ class RuleOptions:
                     domain_list.append(domain if domain[0] != '~' else domain[1:])
         return cls(include_domains=include_domains if include_domains else None,
                    exclude_domains=exclude_domains if exclude_domains else None,
-                   options_mask=options_mask)
+                   options_mask=options_mask,
+                   options_mask_negative=options_mask_negative)
 
 
 def _compile_wildcards(expression, prefix='', suffix='', match_case=False, lazy=False):
