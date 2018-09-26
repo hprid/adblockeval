@@ -10,6 +10,7 @@ _HOSTNAME_REGEX = re.compile(r'^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*'
                              r'[A-Za-z0-9\-]*[A-Za-z0-9])$')
 
 MatchResult = namedtuple('MatchResult', ['is_match', 'matches'])
+RuleKeywords = namedtuple('RuleKeywords', ['url_keywords', 'domain_keywords',])
 
 
 class AdblockRules:
@@ -18,7 +19,7 @@ class AdblockRules:
         self._current_line_no = 1
         if rule_list is not None:
             self.rules = list(self._parse_rules(rule_list))
-        self._build_index()
+        self._index = RulesIndex(self.rules)
 
     def _parse_rules(self, rule_list):
         # In case rule_list is empty, rule_no must be defined.
@@ -46,41 +47,6 @@ class AdblockRules:
                     raise
         self._current_line_no = line_no
 
-    def _build_index(self):
-        always_check_rules = []
-        url_keywords = []
-        url_outputs = []
-        domain_keywords = []
-        domain_outputs = []
-        domain_opt_keywords = []
-        domain_opt_outputs = []
-        for rule_index, rule in enumerate(self.rules):
-            if isinstance(rule, (SubstringRule, RegexpRule)):
-                keyword_list = url_keywords
-                output_list = url_outputs
-            elif isinstance(rule, DomainRule):
-                keyword_list = domain_keywords
-                output_list = domain_outputs
-            else:
-                always_check_rules.append(rule_index)
-                continue
-            keywords = rule.get_keywords()
-            if not keywords:
-                always_check_rules.append(rule_index)
-                continue
-            for keyword in keywords:
-                keyword_list.append(keyword)
-                output_list.append(rule_index)
-            if rule.options and rule.options.include_domains:
-                for domain in rule.options.include_domains:
-                    domain_opt_keywords.append(domain)
-                    domain_opt_outputs.append(rule_index)
-        self._url_index = AhoCorasickIndex.from_keywords(url_keywords, url_outputs)
-        self._domain_index = AhoCorasickIndex.from_keywords(domain_keywords,domain_outputs)
-        self._domain_opt_index = AhoCorasickIndex.from_keywords(domain_opt_keywords,
-                                                                domain_opt_outputs)
-        self._always_check_rules = always_check_rules
-
     def match_slow(self, url, domain=None, origin=None):
         matching_rules = []
         parsed_url = urlparse(url)
@@ -95,18 +61,7 @@ class AdblockRules:
         matching_rules = []
         parsed_url = urlparse(url)
         netloc = parsed_url.netloc
-        rule_indexes = set(self._always_check_rules)
-        rule_indexes.update(self._url_index.get_matching_keywords(url))
-        rule_indexes.update(self._domain_index.get_matching_keywords(netloc))
-        if domain:
-            domain_opt_rules = set(self._domain_opt_index.get_matching_keywords(domain))
-        else:
-            domain_opt_rules = None
-        for rule_index in rule_indexes:
-            rule = self.rules[rule_index]
-            if domain_opt_rules is not None and rule.options and rule.options.include_domains:
-                if rule_index not in domain_opt_rules:
-                    continue
+        for rule in self._index.get_possible_rules(url, netloc, domain):
             if rule.match(url, parsed_url.netloc, domain, origin):
                 if rule.is_exception:
                     return MatchResult(False, [rule])
@@ -139,6 +94,63 @@ class AdblockRules:
         rule.is_exception = is_exception
 
         return rule
+
+
+class RulesIndex:
+    def __init__(self, rules):
+        self.rules = rules
+        self._build_index()
+
+    def _build_index(self):
+        always_check_rules = []
+        url_keywords = []
+        url_outputs = []
+        domain_keywords = []
+        domain_outputs = []
+        domain_opt_keywords = []
+        domain_opt_outputs = []
+
+        for rule_index, rule in enumerate(self.rules):
+            if rule.options:
+                self._add_keywords(rule_index, domain_opt_keywords, domain_opt_outputs,
+                                   rule.options.include_domains)
+            rule_keywords = rule.get_keywords()
+            if not rule_keywords.url_keywords and not rule_keywords.domain_keywords:
+                always_check_rules.append(rule_index)
+                continue
+            self._add_keywords(rule_index, url_keywords, url_outputs,
+                               rule_keywords.url_keywords)
+            self._add_keywords(rule_index, domain_keywords, domain_outputs,
+                               rule_keywords.domain_keywords)
+
+        self._url_index = AhoCorasickIndex.from_keywords(url_keywords, url_outputs)
+        self._domain_index = AhoCorasickIndex.from_keywords(domain_keywords,domain_outputs)
+        self._domain_opt_index = AhoCorasickIndex.from_keywords(domain_opt_keywords,
+                                                                domain_opt_outputs)
+        self._always_check_rules = always_check_rules
+
+    def _add_keywords(self, rule_index, keyword_list, output_list, keywords):
+        if keywords is None:
+            return
+        for keyword in keywords:
+            keyword_list.append(keyword)
+            output_list.append(rule_index)
+
+    def get_possible_rules(self, url, netloc, domain):
+        rule_indexes = set(self._always_check_rules)
+        rule_indexes.update(self._url_index.get_matching_keywords(url))
+        rule_indexes.update(self._domain_index.get_matching_keywords(netloc))
+        if domain:
+            domain_opt_rules = set(self._domain_opt_index.get_matching_keywords(domain))
+        else:
+            domain_opt_rules = None
+
+        for rule_index in rule_indexes:
+            rule = self.rules[rule_index]
+            if domain_opt_rules is not None and rule.options and rule.options.include_domains:
+                if rule_index not in domain_opt_rules:
+                    continue
+            yield rule
 
 
 class RuleParsingError(Exception):
@@ -181,7 +193,9 @@ class RegexpRule(Rule):
         return self._regexp_obj.search(url) is not None
 
     def get_keywords(self):
-        return _get_regexp_keywords(self._regexp_obj.pattern)
+        return RuleKeywords(
+            url_keywords=_get_regexp_keywords(self._regexp_obj.pattern),
+            domain_keywords=None)
 
     @classmethod
     def from_expression(cls, expression, options):
@@ -217,7 +231,9 @@ class DomainRule(Rule):
         return match_obj.start() == 0 or netloc[match_obj.start() - 1] == '.'
 
     def get_keywords(self):
-        return _get_usable_keywords(self._domain.strip('|'))
+        return RuleKeywords(
+            url_keywords=None,
+            domain_keywords=_get_longest_keyword(self._domain.strip('|')))
 
     @classmethod
     def from_expression(cls, expression, options):
@@ -244,7 +260,9 @@ class SubstringRule(Rule):
         return self._regexp_obj.search(url) is not None
 
     def get_keywords(self):
-        return _get_usable_keywords(self.expression.strip('|'))
+        return RuleKeywords(
+            url_keywords=_get_longest_keyword(self.expression.strip('|')),
+            domain_keywords=None)
 
     @classmethod
     def from_expression(cls, expression, options):
@@ -388,9 +406,9 @@ def _compile_wildcards(expression, prefix='', suffix='', match_case=False, lazy=
     return (pattern, options) if lazy else re.compile(pattern, options)
 
 
-def _get_usable_keywords(wildcard_str):
+def _get_longest_keyword(wildcard_str):
     keyword = max(re.split('[*^]', wildcard_str), key=len)
-    return [keyword] if keyword else None
+    return [keyword] if keyword else []
 
 
 def _get_regexp_keywords(pattern):
@@ -466,4 +484,4 @@ def _get_regexp_keywords(pattern):
         state_was_keyword = False
         num_pipe_keywords = 0
 
-    return set(keywords) if keywords else None
+    return set(keywords)
