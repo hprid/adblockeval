@@ -127,3 +127,13 @@ class ParsingTest(unittest.TestCase):
         self.assertEqual(['example.com', 'example.net'], options.include_domains)
         self.assertEqual(['example.org'], options.exclude_domains)
 
+    def test_rule_formatting(self):
+        rule_list = [
+            '||adzbazar.com^$script,third-party,domain=example.com|example.org',
+            '/adblock/$script,third-party,domain=example.com|~example.org',
+            '/|ads/',
+            'adbanner.png|'
+        ]
+        rules = AdblockRules(rule_list)
+        for rule in rules.rules:
+            self.assertEqual(rule_list[rule.line_no - 1], str(rule))
