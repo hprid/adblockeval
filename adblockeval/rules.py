@@ -375,7 +375,7 @@ class RuleOptions:
                     if not domain or domain == '*':
                         continue
                     domain_list = include_domains if domain[0] != '~' else exclude_domains
-                    domain_list.append(domain)
+                    domain_list.append(domain if domain[0] != '~' else domain[1:])
         return cls(include_domains=include_domains if include_domains else None,
                    exclude_domains=exclude_domains if exclude_domains else None,
                    options_mask=options_mask)
