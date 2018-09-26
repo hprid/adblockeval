@@ -113,6 +113,8 @@ class ParsingTest(unittest.TestCase):
         for url in urls:
             self.assertEqual(rules.match(url, 'www.example.com'),
                              rules.match_slow(url, 'www.example.com'))
+            self.assertEqual(rules.match(url, 'hs-data.com'),
+                             rules.match_slow(url, 'hs-data.com'))
 
     def test_rule_no_index(self):
         rules = AdblockRules(['/[Aa](d[bB]lock|ds)/'])
