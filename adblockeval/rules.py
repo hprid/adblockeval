@@ -167,7 +167,9 @@ class Rule:
         self.is_exception = False
 
     def match(self, url, netloc, domain, origin=None):
-        raise NotImplemented
+        if self.options and not self.options.can_apply_rule(netloc, origin):
+            return False
+        return True
 
     def __str__(self):
         if self.options:
@@ -188,7 +190,7 @@ class RegexpRule(Rule):
         self._regexp_obj = regexp_obj
 
     def match(self, url, netloc, domain, origin=None):
-        if self.options and not self.options.can_apply_rule(domain, origin):
+        if not super().match(url, netloc, domain, origin):
             return False
         return self._regexp_obj.search(url) is not None
 
@@ -221,7 +223,7 @@ class DomainRule(Rule):
         self._regexp_obj = regexp_obj
 
     def match(self, url, netloc, domain, origin=None):
-        if self.options and not self.options.can_apply_rule(netloc, origin):
+        if not super().match(url, netloc, domain, origin):
             return False
         if isinstance(self._regexp_obj, tuple):
             self._regexp_obj = re.compile(*self._regexp_obj)
@@ -253,7 +255,7 @@ class SubstringRule(Rule):
         self._regexp_obj = regexp_obj
 
     def match(self, url, netloc, domain, origin=None):
-        if self.options and not self.options.can_apply_rule(domain, origin):
+        if not super().match(url, netloc, domain, origin):
             return False
         if isinstance(self._regexp_obj, tuple):
             self._regexp_obj = re.compile(*self._regexp_obj)
