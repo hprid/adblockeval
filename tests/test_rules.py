@@ -129,6 +129,25 @@ class ParsingTest(unittest.TestCase):
         self.assertEqual(['example.com', 'example.net'], options.include_domains)
         self.assertEqual(['example.org'], options.exclude_domains)
 
+    def test_domain_applicability(self):
+        rules = AdblockRules([
+            '/foo*$domain=example.com|example.org',
+            '||^adscale.de$$domain=example.com|example.org',
+            '/[a-f]{3,7}/$domain=example.com|example.org',
+            '/foo*$domain=~example.net',
+            '||^adscale.de$$domain=~example.org',
+            '/[a-f]{3,7}/$domain=~example.net'
+        ])
+        self.assertTrue(rules.match('http://example.net/foobar', 'example.com').is_match)
+        self.assertTrue(rules.match('http://example.net/foobar', 'example.org').is_match)
+        self.assertFalse(rules.match('http://example.net/foobar', 'example.net').is_match)
+        self.assertTrue(rules.match('http://foo.adscale.de/', 'example.com').is_match)
+        self.assertTrue(rules.match('http://foo.adscale.de/', 'example.org').is_match)
+        self.assertFalse(rules.match('http://foo.adscale.de/', 'example.net').is_match)
+        self.assertTrue(rules.match('http://example.net/afbd', 'example.com').is_match)
+        self.assertTrue(rules.match('http://example.net/afbd', 'example.org').is_match)
+        self.assertFalse(rules.match('http://example.net/afbd', 'example.net').is_match)
+
     def test_rule_formatting(self):
         rule_list = [
             '||adzbazar.com^$script,third-party,domain=example.com|example.org',
