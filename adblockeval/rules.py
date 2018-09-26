@@ -167,7 +167,7 @@ class Rule:
         self.is_exception = False
 
     def match(self, url, netloc, domain, origin=None):
-        if self.options and not self.options.can_apply_rule(netloc, origin):
+        if self.options and not self.options.can_apply_rule(domain, origin):
             return False
         return True
 
