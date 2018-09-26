@@ -179,3 +179,18 @@ class ParsingTest(unittest.TestCase):
         self.assertTrue(_is_subdomain('bar.foo.example.org', 'example.org'))
         self.assertTrue(_is_subdomain('example.org', 'example.org'))
         self.assertFalse(_is_subdomain('noexample.org', 'example.org'))
+
+    def test_rule_repr(self):
+        rule_list = [
+            '/banners/*$script,domain=example.com',
+            '/ttd_puid=\d+/',
+            '||adscale.de',
+        ]
+        rules = AdblockRules(rule_list)
+        rule_reprs = {rule.line_no: repr(rule) for rule in rules.rules}
+        self.assertEqual("SubstringRule<'/banners/*$script,domain=example.com'>",
+                         rule_reprs[1])
+        self.assertEqual("RegexpRule<'/ttd_puid=\\\\d+/'>",
+                         rule_reprs[2])
+        self.assertEqual("DomainRule<'||adscale.de'>",
+                         rule_reprs[3])
