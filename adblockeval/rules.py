@@ -179,7 +179,7 @@ class Rule:
         return '@@' + expression_str if self.is_exception else expression_str
 
     def __repr__(self):
-        return '{}({!r})'.format(self.__class__.__name__, str(self))
+        return '{}<{!r}>'.format(self.__class__.__name__, str(self))
 
 
 class RegexpRule(Rule):
