@@ -167,3 +167,7 @@ class ParsingTest(unittest.TestCase):
         self.assertTrue(rule.options.has_included('script'))
         self.assertTrue(rule.options.has_excluded('stylesheet'))
         self.assertIsNone(rule.options.include_domains)
+        with self.assertRaises(ValueError):
+            rule.options.has_included('nonexistingoption')
+        with self.assertRaises(ValueError):
+            rule.options.has_excluded('nonexistingoption')
