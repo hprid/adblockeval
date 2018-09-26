@@ -205,7 +205,7 @@ class RegexpRule(Rule):
         if not expression.startswith('/') and expression.endswith('/'):
             raise RuleParsingError('Not a regular expression rule: {}'.format(expression))
         pattern = expression[1:-1]
-        match_case = options.has_set('match-case') if options else False
+        match_case = options.has_included('match-case') if options else False
         try:
             regexp_obj = re.compile(pattern,
                                     re.IGNORECASE if not match_case else 0)
@@ -286,7 +286,7 @@ class SubstringRule(Rule):
         # have any influence here.
         expression = expression.strip('*')
 
-        match_case = options.has_set('match-case') if options else False
+        match_case = options.has_included('match-case') if options else False
         regexp_obj = _compile_wildcards(expression,
                                         '^' if fix_start else None,
                                         '$' if fix_end else None,
@@ -338,9 +338,15 @@ class RuleOptions:
             return False
         return True
 
-    def has_set(self, keyword):
+    def has_included(self, keyword):
+        return self._has(self.options_mask, keyword)
+
+    def has_excluded(self, keyword):
+        return self._has(self.options_mask_negative, keyword)
+
+    def _has(self, mask, keyword):
         try:
-            return bool(self.options_mask & self.AVAILABLE_OPTIONS[keyword])
+            return bool(mask & self.AVAILABLE_OPTIONS[keyword])
         except KeyError:
             raise ValueError('Unsupported option keyword: {}'.format(keyword))
 
