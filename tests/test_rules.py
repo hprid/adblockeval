@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from adblockeval.rules import AdblockRules, SubstringRule, RuleParsingError, _get_regexp_keywords
+from adblockeval.rules import AdblockRules, SubstringRule, RuleParsingError, _get_regexp_keywords, _is_subdomain
 
 EASYLIST_PATH = Path(__file__).parent / '../examples/easylist.txt'
 
@@ -171,3 +171,9 @@ class ParsingTest(unittest.TestCase):
             rule.options.has_included('nonexistingoption')
         with self.assertRaises(ValueError):
             rule.options.has_excluded('nonexistingoption')
+
+    def test_is_subdomain(self):
+        self.assertTrue(_is_subdomain('foo.example.org', 'example.org'))
+        self.assertTrue(_is_subdomain('bar.foo.example.org', 'example.org'))
+        self.assertTrue(_is_subdomain('example.org', 'example.org'))
+        self.assertFalse(_is_subdomain('noexample.org', 'example.org'))
