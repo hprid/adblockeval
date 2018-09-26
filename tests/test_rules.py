@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from adblockeval.rules import AdblockRules, SubstringRule, RuleParsingError
+from adblockeval.rules import AdblockRules, SubstringRule, RuleParsingError, _get_regexp_keywords
 
 EASYLIST_PATH = Path(__file__).parent / '../examples/easylist.txt'
 
@@ -116,3 +116,8 @@ class ParsingTest(unittest.TestCase):
         rules = AdblockRules(['/[Aa](d[bB]lock|ds)/'])
         self.assertTrue(rules.match('http://example.com/adBlock/1.png',
                                     'example.com').is_match)
+
+    def test_get_regexp_keywords(self):
+        keywords = _get_regexp_keywords('foo?(bar|qux)(daz|doo)?\.([a-z]{3}|[0-9]{2}')
+        self.assertEqual(keywords, {'fo', 'bar', 'qux'})
+
