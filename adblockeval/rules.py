@@ -332,9 +332,9 @@ class RuleOptions:
         self.options_mask_negative = options_mask_negative
 
     def can_apply_rule(self, domain, origin):
-        if self.exclude_domains and domain in self.exclude_domains:
+        if self.exclude_domains and _contains_subdomain(domain, self.exclude_domains):
             return False
-        if self.include_domains and domain not in self.include_domains:
+        if self.include_domains and not _contains_subdomain(domain, self.include_domains):
             return False
         return True
 
@@ -499,3 +499,14 @@ def _get_regexp_keywords(pattern):
         num_pipe_keywords = 0
 
     return set(keywords)
+
+
+def _is_subdomain(subdomain, domain):
+    return (subdomain == domain or
+                (subdomain.endswith(domain) and
+                 len(subdomain) > len(domain) and
+                 subdomain[-len(domain)-1] == '.'))
+
+
+def _contains_subdomain(subdomain, domain_list):
+    return any(_is_subdomain(subdomain, domain) for domain in domain_list)
