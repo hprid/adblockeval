@@ -104,7 +104,7 @@ class ParsingTest(unittest.TestCase):
             'https://ih.adscale.de/map?ssl=1&format=video',
         ]
         rules = AdblockRules([
-            '/banners/',
+            '/banners/*',
             '/ttd_puid=\d+/',
             '||adscale.de^',
             'hammer*',
