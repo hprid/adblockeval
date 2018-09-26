@@ -431,7 +431,7 @@ def _get_regexp_keywords(pattern):
         ('CHAR_GROUP_CLOSE', r'\]'),
         ('PIPE_GROUP',       r'\([\w\d\-_|]+\)'),
         ('GROUP_OPEN',       r'\('),
-        ('GROUP_END',        r'\)'),
+        ('GROUP_CLOSE',      r'\)'),
         ('LENGTH_OPEN',      r'\{'),
         ('LENGTH_CLOSE',     r'\}'),
         ('OPTIONAL',         r'\?'),
