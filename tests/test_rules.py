@@ -95,3 +95,19 @@ class ParsingTest(unittest.TestCase):
         with self.assertRaises(RuleParsingError):
             AdblockRules(['/[/'])
         AdblockRules(['/[/'], skip_parsing_errors=True)
+
+    def test_match_slow_match_fast(self):
+        urls = [
+            'https://imagesrv.adition.com/banners/268/00/86/70/52/images/konfetti.png',
+            'https://match.adsrvr.org/track/cmf/generic?ttd_pid=theadex&ttd_puid=1001718401132270252&ttd_tpi=1',
+            'https://s.hs-data.com/comon/prj/isdc/v3/default/static/js/lib/hammer.min.js',
+            'https://ih.adscale.de/map?ssl=1&format=video',
+        ]
+        rules = AdblockRules([
+            '/banners/',
+            '/ttd_puid=\d+/',
+            '||adscale.de^'
+        ])
+        for url in urls:
+            self.assertEqual(rules.match(url, 'www.example.com'),
+                             rules.match_slow(url, 'www.example.com'))
