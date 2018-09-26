@@ -153,7 +153,7 @@ class ParsingTest(unittest.TestCase):
     def test_rule_formatting(self):
         rule_list = [
             '||adzbazar.com^$script,third-party,domain=example.com|example.org',
-            '/adblock/$script,third-party,domain=example.com|~example.org',
+            '/adblock/$script,~third-party,domain=example.com|~example.org',
             '/|ads/',
             'adbanner.png|'
         ]
