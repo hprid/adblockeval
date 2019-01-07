@@ -7,5 +7,7 @@ install:
   - pip install --upgrade pytest pytest-cov codecov
   - pip install -e .
 script:
+  - mkdir -p examples
+  - wget -O examples/easylist.txt https://easylist.to/easylist/easylist.txt
   - pytest --cov=./adblockeval
   - codecov
