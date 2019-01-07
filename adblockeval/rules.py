@@ -272,7 +272,7 @@ class DomainRule(Rule):
     def from_expression(cls, expression, options):
         # Expression starts with || and often ends with ^ which
         # however makes no sense, since these characters cannot
-        # be part of a doamin
+        # be part of a domain
         domain = expression[2:].rstrip('^')
         regexp_obj = _compile_wildcards(domain, prefix=r'', suffix='$', lazy=True)
         return cls(expression, options, domain, regexp_obj)
