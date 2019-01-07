@@ -1,6 +1,7 @@
 import re
 from collections import namedtuple
 from urllib.parse import urlparse
+from pathlib import Path
 
 from adblockeval.ahocorasick import AhoCorasickIndex
 
@@ -15,10 +16,16 @@ Origin = namedtuple('Origin', ['source_file', 'line_no'])
 
 
 class AdblockRules:
-    def __init__(self, rule_list=None, skip_parsing_errors=False):
+    def __init__(self, rule_list=None, rule_files=None, skip_parsing_errors=False):
         self.skip_parsing_errors = skip_parsing_errors
+        self.rules = []
         if rule_list is not None:
-            self.rules = list(self._parse_rules(rule_list))
+            self.rules += self._parse_rules(rule_list)
+        if rule_files is not None:
+            rule_files = [Path(rule_file) for rule_file in rule_files]
+            for rule_file in rule_files:
+                with rule_file.open() as f:
+                    self.rules += self._parse_rules(f.readlines(), str(rule_file))
         self._index = RulesIndex(self.rules)
 
     def _parse_rules(self, rule_list, source_file=None):

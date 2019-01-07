@@ -63,8 +63,7 @@ class ParsingTest(unittest.TestCase):
     @unittest.skipIf(not EASYLIST_PATH.is_file(),
                      reason='Requires easylist.txt in examples')
     def test_load_easylist(self):
-        with EASYLIST_PATH.open() as f:
-            rules = AdblockRules(f.readlines())
+        rules = AdblockRules(rule_files=[EASYLIST_PATH])
         urls = [
             'https://imagesrv.adition.com/banners/268/00/86/70/52/images/konfetti.png',
             'https://match.adsrvr.org/track/cmf/generic?ttd_pid=theadex&ttd_puid=1001718401132270252&ttd_tpi=1',
