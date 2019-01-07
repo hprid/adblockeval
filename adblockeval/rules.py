@@ -11,20 +11,19 @@ _HOSTNAME_REGEX = re.compile(r'^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*'
 
 MatchResult = namedtuple('MatchResult', ['is_match', 'matches'])
 RuleKeywords = namedtuple('RuleKeywords', ['url_keywords', 'domain_keywords',])
+Origin = namedtuple('Origin', ['source_file', 'line_no'])
 
 
 class AdblockRules:
     def __init__(self, rule_list=None, skip_parsing_errors=False):
         self.skip_parsing_errors = skip_parsing_errors
-        self._current_line_no = 1
         if rule_list is not None:
             self.rules = list(self._parse_rules(rule_list))
         self._index = RulesIndex(self.rules)
 
-    def _parse_rules(self, rule_list):
+    def _parse_rules(self, rule_list, source_file=None):
         # In case rule_list is empty, rule_no must be defined.
-        line_no = self._current_line_no
-        for line_no, rule_str in enumerate(rule_list, start=self._current_line_no):
+        for line_no, rule_str in enumerate(rule_list, start=1):
             # Comments
             if rule_str.startswith('!'):
                 continue
@@ -40,12 +39,11 @@ class AdblockRules:
 
             try:
                 rule = self._parse_rule(rule_str)
-                rule.line_no = line_no
+                rule.origin = Origin(source_file, line_no)
                 yield rule
             except RuleParsingError as e:
                 if not self.skip_parsing_errors:
                     raise
-        self._current_line_no = line_no
 
     def match_slow(self, url, domain=None, origin=None):
         matching_rules = []
@@ -158,12 +156,12 @@ class RuleParsingError(Exception):
 
 
 class Rule:
-    __slots__ = ('line_no', 'expression', 'options', 'is_exception')
+    __slots__ = ('origin', 'expression', 'options', 'is_exception')
 
     def __init__(self, expression, options):
         self.expression = expression
         self.options = options
-        self.line_no = -1
+        self.origin = None
         self.is_exception = False
 
     def match(self, url, netloc, domain, origin=None):

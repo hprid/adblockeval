@@ -122,7 +122,7 @@ class ParsingTest(unittest.TestCase):
                                     'example.com').is_match)
 
     def test_get_regexp_keywords(self):
-        keywords = _get_regexp_keywords('foo?(bar|qux)(daz|doo)?\.([a-z]{3}|[0-9]{2}')
+        keywords = _get_regexp_keywords(r'foo?(bar|qux)(daz|doo)?\.([a-z]{3}|[0-9]{2}')
         self.assertEqual(keywords, {'fo', 'bar', 'qux'})
 
     def test_domain_option_parsing(self):
@@ -159,7 +159,7 @@ class ParsingTest(unittest.TestCase):
         ]
         rules = AdblockRules(rule_list)
         for rule in rules.rules:
-            self.assertEqual(rule_list[rule.line_no - 1], str(rule))
+            self.assertEqual(rule_list[rule.origin.line_no - 1], str(rule))
 
     def test_rule_options(self):
         rules = AdblockRules([
@@ -183,11 +183,11 @@ class ParsingTest(unittest.TestCase):
     def test_rule_repr(self):
         rule_list = [
             '/banners/*$script,domain=example.com',
-            '/ttd_puid=\d+/',
+            r'/ttd_puid=\d+/',
             '||adscale.de',
         ]
         rules = AdblockRules(rule_list)
-        rule_reprs = {rule.line_no: repr(rule) for rule in rules.rules}
+        rule_reprs = {rule.origin.line_no: repr(rule) for rule in rules.rules}
         self.assertEqual("SubstringRule<'/banners/*$script,domain=example.com'>",
                          rule_reprs[1])
         self.assertEqual("RegexpRule<'/ttd_puid=\\\\d+/'>",
