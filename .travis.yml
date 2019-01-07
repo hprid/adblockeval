@@ -1,13 +1,22 @@
 language: python
 python:
-  - "3.5"
-  - "3.6"
-  - "pypy3.5"
+- '3.5'
+- '3.6'
+- pypy3.5
 install:
-  - pip install --upgrade pytest pytest-cov codecov
-  - pip install -e .
+- pip install --upgrade pytest pytest-cov codecov
+- pip install -e .
 script:
-  - mkdir -p examples
-  - wget -O examples/easylist.txt https://easylist.to/easylist/easylist.txt
-  - pytest --cov=./adblockeval
-  - codecov
+- mkdir -p examples
+- wget -O examples/easylist.txt https://easylist.to/easylist/easylist.txt
+- pytest --cov=./adblockeval
+- codecov
+deploy:
+  provider: pypi
+  user: hprid
+  password:
+    secure: ifAwX/g4fcY6ksz0fbKMnO4Z+bvdMtd2emfjYYIptaU9yewG727jWIXI86wq3j8dtxFmgn2BIlaD2nXgdhvfW1cUlDWN+N5VTEDzHwKxNkKvEArYUUaWykUflkjOEYrUeM2uDav9oU/AwuZKIDILAYzuVTaH208IWX72iMJhIFTnJjFa+l+UVaj8CZ08iUpr53jD7IVyO/eCgwqx1SpSoCVndpd1dXX+UwKIQEV1WmQ1ak69lCn0NBlgtVoy7hCUokdTr8XVks71lJoZiEtmHf0kxdsnUzr/QDE/vOmlGLsQqLjb9+M+YGWf/kzYmWsLXTmks9BrtCnQy2tFMpw1rGnT0bdWyqFMIFiAZ/Jhfe5d/A3+C5tPbUQmK4v6ggHFsIoxGXtpBNDwjuOXpFqkw3WMEWkIkGeGhFNqChpxNIa9oezSRjcZgUI3xgqnXs33FFsOdql5RVYbR6VCKprXxIvpFJQY93/if3NsX1CLlvoDuBxs7FZfqpYfOmmOX7QVsdIjCD8O35xUT3Vy/f4wJDUpMsuq10XW9iIeDi1EOUwRujn+bmrcO5z3hxbfFJBOqIEG5O92+HkpJyU0X4Iyn3SzzlI/zf5OZvwmGbwhWYso3NwUgYEWtNPBc14e/GexRvCFihTIG/QqfhAhssvJ/c7zlG9Od0c8p79l77CM5yA=
+  distributions: sdist bdist_wheel
+  skip_existing: true
+  on:
+    branch: release
