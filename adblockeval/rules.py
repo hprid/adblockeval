@@ -10,6 +10,7 @@ from adblockeval.ahocorasick import AhoCorasickIndex
 _HOSTNAME_REGEX = re.compile(r'^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*'
                              r'[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9]'
                              r'[A-Za-z0-9\-]*[A-Za-z0-9])$')
+_DOMAIN_RULE_SPLIT_REGEXP = re.compile('[/^]')
 
 MatchResult = namedtuple('MatchResult', ['is_match', 'matches'])
 RuleKeywords = namedtuple('RuleKeywords', ['url_keywords', 'domain_keywords',])
@@ -246,22 +247,38 @@ class RegexpRule(Rule):
 
 
 class DomainRule(Rule):
-    __slots__ = ('_domain', '_regexp_obj')
+    __slots__ = ('_domain', '_domain_regexp_obj', '_path_regexp_obj')
 
-    def __init__(self, expression, options, domain, regexp_obj):
+    def __init__(self, expression, options, domain, domain_regexp_obj, path_regexp_obj):
         super().__init__(expression, options)
         self._domain = domain
-        self._regexp_obj = regexp_obj
+        self._domain_regexp_obj = domain_regexp_obj
+        self._path_regexp_obj = path_regexp_obj
 
     def match(self, url, netloc, domain, origin=None):
         if not super().match(url, netloc, domain, origin):
             return False
-        if isinstance(self._regexp_obj, tuple):
-            self._regexp_obj = re.compile(*self._regexp_obj)
-        match_obj = self._regexp_obj.search(netloc)
+
+        if isinstance(self._domain_regexp_obj, tuple):
+            self._domain_regexp_obj = re.compile(*self._domain_regexp_obj)
+        match_obj = self._domain_regexp_obj.search(netloc)
         if match_obj is None:
             return False
-        return match_obj.start() == 0 or netloc[match_obj.start() - 1] == '.'
+        domain_matches = match_obj.start() == 0 or netloc[match_obj.start() - 1] == '.'
+        if not domain_matches:
+            return False
+        # We have no path to check, so if we did not refuse the domain
+        # yet, the domain matches and so will the rule itself.
+        if self._path_regexp_obj is None:
+            return True
+
+        # Splitting at netloc is a little bit hacky, but is the fastest
+        # way to get the actual path without re-parsing the whole URL
+        url_parts = url.split(netloc, maxsplit=1)
+        path = url_parts[1] if len(url_parts) == 2 else '/'
+        if isinstance(self._path_regexp_obj, tuple):
+            self._path_regexp_obj = re.compile(*self._path_regexp_obj)
+        return self._path_regexp_obj.search(path) is not None
 
     def get_keywords(self):
         return RuleKeywords(
@@ -273,9 +290,23 @@ class DomainRule(Rule):
         # Expression starts with || and often ends with ^ which
         # however makes no sense, since these characters cannot
         # be part of a domain
-        domain = expression[2:].rstrip('^')
-        regexp_obj = _compile_wildcards(domain, prefix=r'', suffix='$', lazy=True)
-        return cls(expression, options, domain, regexp_obj)
+        ruleparts = _DOMAIN_RULE_SPLIT_REGEXP.split(expression[2:], maxsplit=1)
+        domain = ruleparts[0]
+        if len(ruleparts) == 2:
+            path = ruleparts[1]
+            separator = expression[2+len(domain)]
+            if separator == '/':
+                path = '/' + path
+        else:
+            path = None
+
+        domain_regexp_obj = _compile_wildcards(domain, prefix=r'', suffix='$', lazy=True)
+        if path:
+            prefix = '^' if path.startswith('/') else ''
+            path_regexp_obj = _compile_wildcards(path, prefix=prefix, suffix='', lazy=True)
+        else:
+            path_regexp_obj = None
+        return cls(expression, options, domain, domain_regexp_obj, path_regexp_obj)
 
 
 class SubstringRule(Rule):

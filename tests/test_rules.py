@@ -44,6 +44,14 @@ class ParsingTest(unittest.TestCase):
         rules = AdblockRules(rule_list)
         self.assertTrue(rules.match('http://adzbazar.com/').is_match)
 
+    def test_domain_rule_with_path(self):
+        rule_list = ['||adzbazar.com^*.js', '||example.com/banner/*.png']
+        rules = AdblockRules(rule_list)
+        self.assertFalse(rules.match('http://adzbazar.com/').is_match)
+        self.assertTrue(rules.match('http://adzbazar.com/static/foo.js').is_match)
+        self.assertFalse(rules.match('http://example.com/no/banner/1.png').is_match)
+        self.assertTrue(rules.match('http://example.com/banner/1.png').is_match)
+
     def test_rule_fix_end(self):
         rule_list = ['/ad.php|']
         rules = AdblockRules(rule_list)
@@ -63,13 +71,18 @@ class ParsingTest(unittest.TestCase):
     @unittest.skipIf(not EASYLIST_PATH.is_file(),
                      reason='Requires easylist.txt in examples')
     def test_load_easylist(self):
+        cache_file = EASYLIST_PATH.with_suffix('.cache')
+        try:
+            cache_file.unlink()
+        except FileNotFoundError:
+            pass
         # Running this test twice will test the cache behavior
         for i in range(2):
-            self._test_load_easylist()
+            self._test_load_easylist(cache_file)
 
-    def _test_load_easylist(self):
+    def _test_load_easylist(self, cache_file):
         rules = AdblockRules(rule_files=[EASYLIST_PATH],
-                             cache_file=EASYLIST_PATH.with_suffix('.cache'))
+                             cache_file=cache_file)
         urls = [
             'https://imagesrv.adition.com/banners/268/00/86/70/52/images/konfetti.png',
             'https://match.adsrvr.org/track/cmf/generic?ttd_pid=theadex&ttd_puid=1001718401132270252&ttd_tpi=1',
