@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from collections import defaultdict
-import pickle
 
 
 class AhoCorasickIndex:
