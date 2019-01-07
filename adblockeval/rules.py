@@ -13,7 +13,7 @@ _HOSTNAME_REGEX = re.compile(r'^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*'
 
 MatchResult = namedtuple('MatchResult', ['is_match', 'matches'])
 RuleKeywords = namedtuple('RuleKeywords', ['url_keywords', 'domain_keywords',])
-Origin = namedtuple('Origin', ['source_file', 'line_no'])
+RuleOrigin = namedtuple('RuleOrigin', ['source_file', 'line_no'])
 
 
 class AdblockRules:
@@ -72,7 +72,7 @@ class AdblockRules:
 
             try:
                 rule = self._parse_rule(rule_str)
-                rule.origin = Origin(source_file, line_no)
+                rule.origin = RuleOrigin(source_file, line_no)
                 yield rule
             except RuleParsingError as e:
                 if not self.skip_parsing_errors:
