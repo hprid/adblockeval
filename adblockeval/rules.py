@@ -29,7 +29,6 @@ class AdblockRules:
         self._index = RulesIndex(self.rules)
 
     def _parse_rules(self, rule_list, source_file=None):
-        # In case rule_list is empty, rule_no must be defined.
         for line_no, rule_str in enumerate(rule_list, start=1):
             # Comments
             if rule_str.startswith('!'):
