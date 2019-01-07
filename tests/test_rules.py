@@ -1,7 +1,8 @@
 import unittest
 from pathlib import Path
 
-from adblockeval.rules import AdblockRules, SubstringRule, RuleParsingError, _get_regexp_keywords, _is_subdomain
+from adblockeval.rules import AdblockRules, SubstringRule, RuleParsingError, _get_regexp_keywords, _is_subdomain, \
+    RegexpRule
 
 EASYLIST_PATH = Path(__file__).parent / '../examples/easylist.txt'
 
@@ -38,6 +39,10 @@ class ParsingTest(unittest.TestCase):
         rules = AdblockRules(rule_list)
         self.assertTrue(rules.match('https://marchfor.science/1337/',
                                     origin='script').is_match)
+
+    def test_regexp_rule_invalid(self):
+        with self.assertRaises(RuleParsingError):
+            RegexpRule.from_expression('foobar', None)
 
     def test_domain_rule(self):
         rule_list = ['||adzbazar.com^$third-party']

@@ -234,7 +234,7 @@ class RegexpRule(Rule):
     @classmethod
     def from_expression(cls, expression, options):
         # Expression starts with / and ends with /$
-        if not expression.startswith('/') and expression.endswith('/'):
+        if not (expression.startswith('/') and expression.endswith('/')):
             raise RuleParsingError('Not a regular expression rule: {}'.format(expression))
         pattern = expression[1:-1]
         match_case = options.has_included('match-case') if options else False
