@@ -1,3 +1,4 @@
+import pickle
 import re
 from collections import namedtuple
 from urllib.parse import urlparse
@@ -16,17 +17,43 @@ Origin = namedtuple('Origin', ['source_file', 'line_no'])
 
 
 class AdblockRules:
-    def __init__(self, rule_list=None, rule_files=None, skip_parsing_errors=False):
+    def __init__(self, rule_list=None, rule_files=None, cache_file=None,
+                 skip_parsing_errors=False):
+        if rule_list and cache_file:
+            raise ValueError('Cannot use rule_list if cache_file is provided. '
+                             'Put your rules into a file and use rule_files instead.')
         self.skip_parsing_errors = skip_parsing_errors
         self.rules = []
-        if rule_list is not None:
+
+        if rule_list is not None and cache_file is None:
             self.rules += self._parse_rules(rule_list)
+
+        load_from_cache = False
         if rule_files is not None:
             rule_files = [Path(rule_file) for rule_file in rule_files]
-            for rule_file in rule_files:
-                with rule_file.open() as f:
-                    self.rules += self._parse_rules(f.readlines(), str(rule_file))
-        self._index = RulesIndex(self.rules)
+            if cache_file:
+                cache_file = Path(cache_file)
+                try:
+                    cache_mtime = cache_file.stat().st_mtime
+                except FileNotFoundError:
+                    load_from_cache = False
+                else:
+                    newest_mtime = max(rule_file.stat().st_mtime for rule_file in rule_files)
+                    load_from_cache = newest_mtime <= cache_mtime
+            if load_from_cache:
+                with cache_file.open('rb') as f:
+                    self.rules, self._index = pickle.load(f)
+            else:
+                for rule_file in rule_files:
+                    with rule_file.open() as f:
+                        self.rules += self._parse_rules(f.readlines(), str(rule_file))
+
+        if not load_from_cache:
+            self._index = RulesIndex(self.rules)
+
+        if cache_file and not load_from_cache:
+            with cache_file.open('wb') as f:
+                pickle.dump((self.rules, self._index), f, pickle.HIGHEST_PROTOCOL)
 
     def _parse_rules(self, rule_list, source_file=None):
         for line_no, rule_str in enumerate(rule_list, start=1):

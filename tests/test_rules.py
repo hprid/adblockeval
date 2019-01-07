@@ -63,7 +63,13 @@ class ParsingTest(unittest.TestCase):
     @unittest.skipIf(not EASYLIST_PATH.is_file(),
                      reason='Requires easylist.txt in examples')
     def test_load_easylist(self):
-        rules = AdblockRules(rule_files=[EASYLIST_PATH])
+        # Running this test twice will test the cache behavior
+        for i in range(2):
+            self._test_load_easylist()
+
+    def _test_load_easylist(self):
+        rules = AdblockRules(rule_files=[EASYLIST_PATH],
+                             cache_file=EASYLIST_PATH.with_suffix('.cache'))
         urls = [
             'https://imagesrv.adition.com/banners/268/00/86/70/52/images/konfetti.png',
             'https://match.adsrvr.org/track/cmf/generic?ttd_pid=theadex&ttd_puid=1001718401132270252&ttd_tpi=1',
