@@ -43,6 +43,8 @@ class ParsingTest(unittest.TestCase):
         rule_list = ['||adzbazar.com^$third-party']
         rules = AdblockRules(rule_list)
         self.assertTrue(rules.match('http://adzbazar.com/').is_match)
+        self.assertTrue(rules.match('http://foo.adzbazar.com/').is_match)
+        self.assertTrue(rules.match('http://foo.bar.adzbazar.com/').is_match)
 
     def test_domain_rule_with_path(self):
         rule_list = ['||adzbazar.com^*.js', '||example.com/banner/*.png']
