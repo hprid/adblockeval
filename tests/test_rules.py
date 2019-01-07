@@ -105,7 +105,7 @@ class ParsingTest(unittest.TestCase):
         ]
         rules = AdblockRules([
             '/banners/*',
-            '/ttd_puid=\d+/',
+            '/ttd_puid=\\d+/',
             '||adscale.de^',
             'hammer*',
             '@@https://$domain=hs-data.com'
