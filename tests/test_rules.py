@@ -214,3 +214,9 @@ class ParsingTest(unittest.TestCase):
                          rule_reprs[2])
         self.assertEqual("DomainRule<'||adscale.de'>",
                          rule_reprs[3])
+
+    def test_rule_list_cache_file_mutual_exclusive(self):
+        with self.assertRaises(ValueError):
+            AdblockRules(rule_list=['/some/rule.jpg'],
+                         rule_files=['dummy.txt'],
+                         cache_file='dummy.cache')
