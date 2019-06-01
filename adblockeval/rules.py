@@ -46,7 +46,7 @@ class AdblockRules:
                     self.rules, self._index = pickle.load(f)
             else:
                 for rule_file in rule_files:
-                    with rule_file.open() as f:
+                    with rule_file.open(encoding='utf-8', errors='replace') as f:
                         self.rules += self._parse_rules(f.readlines(), str(rule_file))
 
         if not load_from_cache:
